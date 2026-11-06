@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  titanforge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: titanforge-app
+    ports:
+      - "8000:8080"
+    environment:
+      - PORT=8080
+    volumes:
+      # Persist SQLite database and uploaded CAD models
+      - ./backend/uploads:/app/backend/uploads
+      - ./backend/certificates:/app/backend/certificates
+      - ./backend/worm_vault:/app/backend/worm_vault
+      - ./backend/app.db:/app/backend/app.db
+    restart: unless-stopped
+
