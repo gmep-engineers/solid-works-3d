@@ -7,7 +7,7 @@ $REGION = "us-central1"
 $REPO_NAME = "titanforge-repo"
 $IMAGE_NAME = "titanforge-app"
 $SERVICE_NAME = "titanforge-app"
-$TAG = "v1"
+$TAG = $(Get-Date -Format "yyyyMMdd-HHmmss")
 
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "Deploying TitanForge 3D to Google Cloud Run" -ForegroundColor Cyan
@@ -41,8 +41,8 @@ $IMAGE_URI = "$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/${IMAGE_NAME}:$TAG"
 Write-Host "`n[4/5] Building and pushing Docker container to Cloud Build ($IMAGE_URI)..." -ForegroundColor Yellow
 gcloud builds submit --tag $IMAGE_URI .
 
-# Deploy to Cloud Run
-Write-Host "`n[5/5] Deploying container to Cloud Run..." -ForegroundColor Yellow
+# Deploy to Cloud Run with GCS volume mount
+Write-Host "`n[5/5] Deploying container to Cloud Run with persistent GCS volume..." -ForegroundColor Yellow
 gcloud run deploy $SERVICE_NAME `
     --image $IMAGE_URI `
     --platform managed `
@@ -52,7 +52,9 @@ gcloud run deploy $SERVICE_NAME `
     --memory 2Gi `
     --cpu 2 `
     --min-instances 0 `
-    --max-instances 10 `
+    --max-instances 5 `
+    "--add-volume=name=gcs-uploads,type=cloud-storage,bucket=hephillu3d-data" `
+    "--add-volume-mount=volume=gcs-uploads,mount-path=/app/backend/uploads" `
     --project $PROJECT_ID
 
 Write-Host "`n==========================================" -ForegroundColor Green
