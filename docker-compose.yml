@@ -1,20 +1,109 @@
 version: '3.8'
 
 services:
-  titanforge:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: titanforge-app
-    ports:
-      - "8000:8080"
-    environment:
-      - PORT=8080
-    volumes:
-      # Persist SQLite database and uploaded CAD models
-      - ./backend/uploads:/app/backend/uploads
-      - ./backend/certificates:/app/backend/certificates
-      - ./backend/worm_vault:/app/backend/worm_vault
-      - ./backend/app.db:/app/backend/app.db
+  # 1. PostgreSQL with WORM Triggers & Hash-Chained Ledger
+  postgres:
+    image: postgres:16-alpine
+    container_name: levitate3d-postgres
     restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-levitate3d}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d levitate3d"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
+  # 2. MinIO S3 Object Lock Vault for Immutable 3D Files & Receipts
+  minio:
+    image: minio/minio:latest
+    container_name: levitate3d-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  # 2b. MinIO Bucket Initializer (Enables Object Lock on 'levitate3d-vault')
+  minio-init:
+    image: minio/mc:latest
+    container_name: levitate3d-minio-init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 3;
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb --with-lock myminio/levitate3d-vault || true;
+      /usr/bin/mc retention set --default COMPLIANCE 365d myminio/levitate3d-vault || true;
+      exit 0;
+      "
+
+  # 3. Headless REST API Backend (NestJS / TypeScript)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: levitate3d-backend
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: 4000
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/levitate3d
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: levitate3d
+      JWT_SECRET: ${JWT_SECRET:-levitate-super-secret-worm-jwt-key-2026}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-levitate-super-refresh-key-2026}
+      TRIPO3D_API_KEY: ${TRIPO3D_API_KEY:-}
+      TRIPO3D_MOCK_MODE: ${TRIPO3D_MOCK_MODE:-true}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_mock_stripe_key}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_mock_stripe_secret}
+      STRIPE_MOCK_MODE: ${STRIPE_MOCK_MODE:-true}
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET_NAME: levitate3d-vault
+      S3_OBJECT_LOCK_ENABLED: "true"
+      FRONTEND_URL: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  # 4. Customer & Admin Web Frontend (Next.js 14)
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: levitate3d-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: http://localhost:4000/api/v1
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  minio_data:

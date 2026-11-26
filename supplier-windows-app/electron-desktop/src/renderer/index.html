@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Levitate3D — Vendor Terminal (Design & 3D Print)</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="./libs/three.min.js"></script>
+  <script src="./libs/GLTFLoader.js"></script>
+  <script src="./libs/OrbitControls.js"></script>
+</head>
+<body>
+  <!-- 1. LOGIN SCREEN -->
+  <div id="login-screen" class="login-wrapper">
+    <div class="login-box">
+      <div class="terminal-badge">STRICT VENDOR GATEWAY (ISOLATED)</div>
+      <h2>Vendor Terminal Login</h2>
+      <p class="subtitle">Hardware Device Bound • 3D CAD Designers & 3D Printing Facilities</p>
+      
+      <form id="login-form">
+        <div class="form-group">
+          <label>Operator Email</label>
+          <input type="email" id="login-email" value="factory@3dprint-supplier.cn" required />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="login-password" value="factory123" required />
+        </div>
+        <div class="form-group">
+          <label>Device Token (Hardware Fingerprint)</label>
+          <input type="text" id="login-device-token" value="WIN-APP-DEMO-HARDWARE-TOKEN" required />
+        </div>
+        <button type="submit" class="btn btn-primary" id="btn-login">Connect to Gateway</button>
+      </form>
+      <div id="login-error" class="error-msg"></div>
+    </div>
+  </div>
+
+  <!-- 2. MAIN APPLICATION -->
+  <div id="app-screen" class="app-layout" style="display: none;">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="app-logo">LEVITATE3D // VENDOR TERMINAL</div>
+        <span class="badge badge-success">Gateway Encrypted</span>
+        <span class="badge badge-warning">WORM Audit Active</span>
+        <span id="header-role-badge" class="badge" style="background: #1e1b4b; color: #a5b4fc; border: 1px solid #6366f1; font-weight: 800;">🎨 3D DESIGN & PRINT</span>
+      </div>
+      <div class="header-right" style="display: flex; align-items: center; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 11px; color: #94a3b8; font-weight: 700;">Active Partner:</span>
+          <select id="select-active-manufacturer" style="background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 8px; padding: 4px 8px; font-size: 11px; font-weight: 700; outline: none; cursor: pointer;">
+            <optgroup label="🎨 3D CAD Designers (Design Fine-Tune)">
+              <option value="vendor-neotokyo-sculpt">🎨 NeoTokyo Sculpt & CAD Studio (Tokyo, JP)</option>
+              <option value="vendor-polymorph-cad">🎨 PolyMorph 3D Design Lab (Vancouver, CA)</option>
+            </optgroup>
+            <optgroup label="🖨️ 3D Printing Facilities (Fabrication)">
+              <option value="mfr-shenzhen-apex">🖨️ Apex Precision 3D (Shenzhen, CN)</option>
+              <option value="mfr-dongguan-resin">🖨️ Dongguan HyperResin (Dongguan, CN)</option>
+              <option value="mfr-pacific-proto">🖨️ Pacific Prototyping Labs (Beaverton, OR)</option>
+            </optgroup>
+          </select>
+        </div>
+        <button id="btn-logout" class="btn btn-sm">Disconnect</button>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="app-body">
+      <!-- Left Column: Job Queue Tabs -->
+      <aside class="sidebar">
+        <div class="queue-tabs">
+          <button class="tab-btn active" id="tab-refine">
+            Needs Refinement (<span id="count-refine">0</span>)
+          </button>
+          <button class="tab-btn" id="tab-print">
+            Ready to Print & Wire (<span id="count-print">0</span>)
+          </button>
+        </div>
+
+        <div class="jobs-list" id="jobs-container">
+          <!-- Job items injected here -->
+        </div>
+      </aside>
+
+      <!-- Center Column: Job Specs & 3D Viewer -->
+      <section class="main-content">
+        <div id="no-job-selected" class="empty-state">
+          Select a job from the queue to view technical 3D specs
+        </div>
+
+        <div id="job-details" style="display: none;">
+          <div class="job-header">
+            <div>
+              <h2 id="job-title">JOB-LEV-2026-891042</h2>
+              <div class="job-meta" id="job-meta">Standard 12cm • Translucent Glow</div>
+            </div>
+            <div class="stage-tag" id="job-stage-badge">NEEDS_REFINEMENT</div>
+          </div>
+
+          <!-- 3D Model Viewer Canvas -->
+          <div class="viewer-container">
+            <div id="three-canvas"></div>
+            <div class="viewer-overlay">
+              <span>Interactive 3D Inspection (Left-click drag to rotate)</span>
+            </div>
+          </div>
+
+          <!-- Specifications Cards -->
+          <div class="specs-grid">
+            <div class="spec-card">
+              <h4>Magnetic Base Cavity Specs</h4>
+              <p id="spec-magnet">18.2mm diam x 6.5mm depth cylindrical cavity at base center (N52 Magnet Socket)</p>
+            </div>
+            <div class="spec-card">
+              <h4>Internal LED Wiring Specs</h4>
+              <p id="spec-led">3.0mm smooth curved wire conduit + torso hollowed (2.0mm wall)</p>
+            </div>
+            <div class="spec-card">
+              <h4>Designer Adjustment Notes</h4>
+              <p id="spec-notes">Smooth facial details and hollow chest for inductive coil.</p>
+            </div>
+          </div>
+
+          <!-- Asset Download Buttons -->
+          <div class="action-bar">
+            <button class="btn btn-secondary" id="btn-download-glb">Download Original GLB</button>
+            <button class="btn btn-secondary" id="btn-download-specs">Download Spec Sheet PDF</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Workflow Actions & Scoped Chat -->
+      <aside class="right-pane">
+        <!-- 0. Job Acceptance & Price Quote (Take or Reject Job) -->
+        <div class="panel-box" id="job-bidding-panel">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <h3>Vendor RFQ & Bidding</h3>
+            <span id="bidding-status-badge" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 9999px; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;">
+              Pending Decision
+            </span>
+          </div>
+          <p class="small-text" id="bidding-desc-text">Review technical specs and submit your competitive bid to win this project.</p>
+
+          <!-- RFQ Bidding Form (When RFQ is OPEN) -->
+          <div id="rfq-bidding-form-view" style="display: none; margin-top: 6px;">
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; font-size: 11px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #166534; font-weight: 700;">Base Ceiling Bid:</span>
+                <span id="rfq-base-price-display" style="font-weight: 800; color: #15803d; font-family: monospace; font-size: 13px;">$65.00 USD</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px; color: #475569; font-size: 10px;">
+                <span>Time Remaining:</span>
+                <span id="rfq-deadline-display" style="font-weight: 700; color: #d97706;">⏳ 24h Window</span>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label style="font-size: 11px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">
+                Your Quoted Bid Price (USD $):
+              </label>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-weight: 800; color: #0284c7; font-size: 14px;">$</span>
+                <input type="number" id="rfq-bid-price" placeholder="58.00" value="58.00" step="1" min="10" max="300" style="font-weight: 800; font-size: 14px;" />
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label style="font-size: 11px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">
+                Estimated Turnaround (Business Days):
+              </label>
+              <input type="number" id="rfq-bid-days" placeholder="3" value="3" min="1" max="14" style="font-weight: 700; font-size: 12px;" />
+            </div>
+
+            <div class="form-group" style="margin-bottom: 10px;">
+              <label style="font-size: 11px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">
+                Fabrication Notes & Tolerances:
+              </label>
+              <input type="text" id="rfq-bid-notes" placeholder="e.g. Ultrasonic wash, calibrated N52 magnet socket" value="High-precision SLA resin + ultrasonic wash + 18.2mm cavity ready." />
+            </div>
+
+            <button class="btn btn-success btn-block" id="btn-submit-rfq-bid" style="font-weight: 800; padding: 10px;">
+              🚀 Submit Competitive Bid to Admin
+            </button>
+          </div>
+
+          <!-- Submitted Bid State (When this factory already submitted a bid) -->
+          <div id="rfq-bid-submitted-view" style="display: none; padding: 10px; background: #f0fdf4; border-radius: 10px; border: 1px solid #86efac; margin-top: 6px;">
+            <div style="color: #166534; font-weight: 800; font-size: 12px; display: flex; align-items: center; justify-content: space-between;">
+              <span>✓ Bid Submitted to Admin</span>
+              <span id="rfq-my-bid-amount" style="font-family: monospace; font-size: 13px; color: #15803d; font-weight: 800;">$58.00 USD</span>
+            </div>
+            <div style="color: #475569; font-size: 11px; margin-top: 4px;">
+              Turnaround: <strong id="rfq-my-bid-days">3 business days</strong> • Status: <strong style="color: #d97706;">⏳ Awaiting Admin Decision</strong>
+            </div>
+            <div id="rfq-my-bid-notes" style="color: #64748b; font-size: 10px; margin-top: 3px; font-style: italic;"></div>
+            <button class="btn btn-sm btn-outline" id="btn-revise-rfq-bid" style="margin-top: 8px; width: 100%;">
+              ✎ Revise / Update Bid
+            </button>
+          </div>
+
+          <!-- Awarded Winner View -->
+          <div id="rfq-bid-awarded-view" style="display: none; padding: 12px; background: #ecfdf5; border-radius: 10px; border: 2px solid #34d399; margin-top: 6px;">
+            <div style="color: #065f46; font-weight: 800; font-size: 13px; display: flex; align-items: center; gap: 4px;">
+              <span>🏆 PROJECT AWARDED TO YOUR FACTORY!</span>
+            </div>
+            <div style="color: #047857; font-size: 11px; margin-top: 4px;">
+              Agreed Payout: <strong id="rfq-awarded-price" style="font-size: 14px; font-family: monospace; color: #065f46;">$58.00 USD</strong>
+            </div>
+            <p style="color: #065f46; font-size: 11px; margin-top: 4px; line-height: 1.4;">
+              Your competitive bid was selected by Admin. Please proceed with 3D model refinement and upload below.
+            </p>
+          </div>
+
+          <!-- Outbid / Awarded to Competing Factory View -->
+          <div id="rfq-bid-outbid-view" style="display: none; padding: 10px; background: #f8fafc; border-radius: 10px; border: 1px solid #cbd5e1; margin-top: 6px;">
+            <div style="color: #475569; font-weight: 800; font-size: 12px;">Bidding Concluded</div>
+            <p style="color: #64748b; font-size: 11px; margin-top: 3px;">
+              This project was awarded to another partner factory. Thank you for your bid submission.
+            </p>
+          </div>
+
+          <!-- Fallback Direct Acceptance / Legacy Actions View -->
+          <div id="bidding-actions-view" style="display: none;">
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label style="font-size: 11px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">
+                Quoted Fabrication & Refinement Price (USD $):
+              </label>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-weight: 800; color: #0284c7; font-size: 14px;">$</span>
+                <input type="number" id="supplier-quote-price" placeholder="65.00" value="65.00" step="1" min="10" style="font-weight: 800; font-size: 14px;" />
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 10px;">
+              <input type="text" id="supplier-quote-notes" placeholder="e.g. 24hr SLA prep + magnetic cavity calibrated" value="Accepted. Standard SLA resin & 18.2mm cavity ready." />
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <button class="btn btn-success btn-block" id="btn-accept-job">✓ Take Job ($ Quote)</button>
+              <button class="btn btn-danger btn-block" id="btn-reject-job">✕ Reject Job</button>
+            </div>
+          </div>
+
+          <div id="bidding-accepted-view" style="display: none; padding: 10px; background: #ecfdf5; border-radius: 10px; border: 1px solid #a7f3d0; margin-top: 4px;">
+            <div style="color: #065f46; font-weight: 800; font-size: 12px; display: flex; align-items: center; gap: 4px;">
+              <span>✓ Job Accepted by Your Factory</span>
+            </div>
+            <div style="color: #047857; font-size: 11px; margin-top: 3px;">
+              Agreed Payout to Factory: <strong id="accepted-price-display" style="font-size: 13px; color: #065f46;">$65.00 USD</strong>
+            </div>
+            <div id="accepted-notes-display" style="color: #64748b; font-size: 10px; margin-top: 2px;"></div>
+          </div>
+
+          <div id="bidding-rejected-view" style="display: none; padding: 10px; background: #fef2f2; border-radius: 10px; border: 1px solid #fecaca; margin-top: 4px;">
+            <div style="color: #991b1b; font-weight: 800; font-size: 12px;">✕ Job Declined by Factory</div>
+            <div id="rejected-reason-display" style="color: #b91c1c; font-size: 11px; margin-top: 2px;"></div>
+          </div>
+        </div>
+
+        <!-- 1. Refined Model Uploader -->
+        <div class="panel-box">
+          <h3>Upload Refined 3D Model</h3>
+          <p class="small-text">Upload calibrated .stl or .glb with magnet cavity</p>
+          <div class="form-group">
+            <input type="text" id="upload-model-url" placeholder="https://.../refined_model.glb" />
+            <button class="btn btn-sm btn-outline" id="btn-pick-file">Select Local File</button>
+          </div>
+          <div class="form-group">
+            <textarea id="upload-notes" rows="2" placeholder="Designer calibration notes..."></textarea>
+          </div>
+          <button class="btn btn-primary btn-block" id="btn-submit-refined">Submit to WORM Ledger</button>
+        </div>
+
+        <!-- 2. Status Progression & US Hub Dispatch -->
+        <div class="panel-box">
+          <h3>Production & US Hub Dispatch</h3>
+          <p class="small-text" style="color: #64748b; font-size: 11px; margin-bottom: 8px; line-height: 1.4;">
+            Products are dispatched strictly to <strong>Levitate3D US Company Hub</strong> for base pairing & QA. Do NOT ship to client directly.
+          </p>
+          <div class="status-actions">
+            <button class="btn btn-sm" id="btn-stage-print">Advance to Printing & LED Assembly</button>
+            <div class="shipping-inputs" style="margin-top: 8px;">
+              <input type="text" id="carrier-input" placeholder="Inbound Freight Carrier" value="DHL Express Air Freight" />
+              <input type="text" id="tracking-input" placeholder="Inbound Freight Waybill / Tracking #" value="DHL-INB-98472910" />
+            </div>
+            <button class="btn btn-primary btn-block" id="btn-stage-shipped" style="margin-top: 8px;">Dispatch to Levitate3D US Hub</button>
+          </div>
+        </div>
+
+        <!-- 3. Scoped Technical Chat -->
+        <div class="panel-box chat-box">
+          <h3>Technical Technical Chat (Job Scoped)</h3>
+          <div class="messages-container" id="chat-messages">
+            <!-- Messages injected here -->
+          </div>
+          <form id="chat-form" class="chat-input-bar">
+            <input type="text" id="chat-input" placeholder="Clarify technical specs..." required />
+            <button type="submit" class="btn btn-primary btn-sm">Send</button>
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

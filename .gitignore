@@ -1,45 +1,31 @@
 # Dependencies
 node_modules/
-frontend/node_modules/
-frontend/dist/
+*/node_modules/
+supplier-windows-app/*/node_modules/
 
-# Python & Cache
-__pycache__/
-*/__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.pytest_cache/
-.coverage
-htmlcov/
-*.log
+# Build outputs
+web/.next/
+web/out/
+backend/dist/
+supplier-windows-app/*/dist/
+supplier-windows-app/*/publish/
+supplier-windows-app/*/bin/
+supplier-windows-app/*/obj/
+*.tsbuildinfo
 
 # Environments & Secrets
 .env
 .env.local
-*.env
-.venv/
-venv/
-env/
-ENV/
-backend/tripo_config.json
+.env.*.local
+backend/.env
+web/.env
 
-# Databases
-*.db
-*.db-journal
-*.sqlite3
-*.db-shm
-*.db-wal
-
-# Runtime user uploads & generated files (persisted in Google Cloud Storage)
+# Runtime uploads & persistent dev store (stored in Google Cloud Storage)
 backend/uploads/*
 !backend/uploads/.gitkeep
-backend/worm_vault/*
-!backend/worm_vault/.gitkeep
-backend/certificates/*
-!backend/certificates/.gitkeep
 
-# IDEs & OS artifacts
+# Logs & OS artifacts
+*.log
 .idea/
 .vscode/
 *.swp
@@ -47,4 +33,3 @@ backend/certificates/*
 .DS_Store
 Thumbs.db
 Desktop.ini
-

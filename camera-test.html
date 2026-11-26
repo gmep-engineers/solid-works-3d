@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dual Camera Real-Time Video Testing Studio</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #020617;
+      color: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background-color: #0f172a;
+      border-bottom: 1px solid #1e293b;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .badge-sub {
+      font-size: 10px;
+      font-family: monospace;
+      color: #38bdf8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    h1 {
+      font-size: 18px;
+      font-weight: 800;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease-in-out;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #06b6d4, #2563eb);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(6, 182, 212, 0.25);
+    }
+    .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-danger {
+      background-color: #e11d48;
+      color: #ffffff;
+    }
+    .btn-danger:hover { background-color: #be123c; }
+    .btn-secondary {
+      background-color: #1e293b;
+      color: #cbd5e1;
+      border-color: #334155;
+    }
+    .btn-secondary:hover { background-color: #334155; color: #ffffff; }
+    .btn-active {
+      background-color: #0284c7 !important;
+      color: #ffffff !important;
+      border-color: #38bdf8 !important;
+    }
+    main {
+      flex: 1;
+      padding: 16px 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .info-card {
+      background: linear-gradient(135deg, rgba(8, 47, 73, 0.4), rgba(15, 23, 42, 0.8));
+      border: 1px solid rgba(14, 116, 144, 0.4);
+      padding: 12px 16px;
+      border-radius: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+    .toolbar {
+      background-color: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .control-label {
+      font-size: 10px;
+      font-family: monospace;
+      color: #94a3b8;
+      text-transform: uppercase;
+    }
+    select {
+      background-color: #1e293b;
+      border: 1px solid #334155;
+      color: #ffffff;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      outline: none;
+    }
+    select:focus { border-color: #06b6d4; }
+    .segmented-control {
+      display: flex;
+      background-color: #020617;
+      padding: 3px;
+      border-radius: 10px;
+      border: 1px solid #1e293b;
+      gap: 3px;
+    }
+    .segmented-control button {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      padding: 6px 12px;
+      border-radius: 7px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .viewport-container {
+      background-color: #0a0f1d;
+      border: 1px solid #1e293b;
+      border-radius: 18px;
+      overflow: hidden;
+      min-height: 520px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .split-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      width: 100%;
+      height: 100%;
+      padding: 12px;
+    }
+    @media (max-width: 860px) {
+      .split-grid { grid-template-columns: 1fr; }
+    }
+    .canvas-card {
+      background-color: #000000;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+    }
+    canvas {
+      max-width: 100%;
+      max-height: 540px;
+      display: block;
+    }
+    video {
+      max-width: 100%;
+      max-height: 540px;
+      display: block;
+    }
+    .lens-tag {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid #334155;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-family: monospace;
+      font-weight: 700;
+    }
+    .lens-tag-left { color: #38bdf8; }
+    .lens-tag-right { color: #fbbf24; }
+    .hud-bar {
+      width: 100%;
+      background-color: rgba(15, 23, 42, 0.95);
+      border-top: 1px solid #1e293b;
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: monospace;
+      font-size: 11px;
+    }
+    .hud-stat {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hud-stat strong { color: #38bdf8; }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      display: inline-block;
+    }
+    .sliders-row {
+      background-color: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      font-size: 11px;
+    }
+    input[type=range] {
+      width: 100%;
+      accent-color: #06b6d4;
+      background-color: #1e293b;
+      height: 4px;
+      border-radius: 4px;
+      margin-top: 4px;
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="badge-sub">Windows Testing App &bull; USB UVC Interface</div>
+      <h1>📹 Dual Camera Live Testing Studio (Camera201)</h1>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button id="btnRefresh" class="btn btn-secondary">🔄 Refresh Ports</button>
+      <button id="btnToggleStream" class="btn btn-primary">▶ Start Live Stream</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="info-card">
+      <div>
+        <span style="font-weight: 800; color: #fff;">USB Composite Device: VID_32E4 &amp; PID_A201</span>
+        <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 2px 8px; border-radius: 12px; font-weight: 700; font-size: 10px; margin-left: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
+          HARDWARE PRESENT &bull; OK
+        </span>
+        <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">
+          Sensor Interfaces: <strong>UVC Video (MI_00)</strong> + <strong>WinUSB Data/Depth Channel (MI_02)</strong>
+        </div>
+      </div>
+      <div id="recordingStatus" style="font-family: monospace; font-size: 11px; color: #94a3b8;">
+        Ready for capture
+      </div>
+    </div>
+
+    <!-- Toolbar Controls -->
+    <div class="toolbar">
+      <div class="control-group">
+        <label class="control-label">Video Input Device</label>
+        <select id="deviceSelect">
+          <option value="">Searching for cameras...</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label">Requested Resolution</label>
+        <select id="resSelect">
+          <option value="AUTO">Auto (Native Maximum)</option>
+          <option value="2560x960">2560 × 960 (Dual-Lens Ultrawide)</option>
+          <option value="3840x1080">3840 × 1080 (Dual 1080p Ultrawide)</option>
+          <option value="1920x1080">1920 × 1080 (Full HD)</option>
+          <option value="1280x720">1280 × 720 (Standard HD)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label">Stereo Display Mode</label>
+        <div class="segmented-control" id="viewModeGroup">
+          <button type="button" class="btn-active" data-mode="SPLIT_STEREO">Stereo Split (L / R)</button>
+          <button type="button" data-mode="SINGLE">Full Raw Feed</button>
+          <button type="button" data-mode="ANAGLYPH">3D Anaglyph</button>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 8px; align-items: flex-end;">
+        <button id="btnGrid" class="btn btn-secondary" title="Toggle Parallax Crosshairs">⌖ Grid: ON</button>
+        <button id="btnSnapshot" class="btn btn-secondary">📷 Snapshot</button>
+        <button id="btnRecord" class="btn btn-secondary">🔴 Record</button>
+      </div>
+    </div>
+
+    <!-- Viewport Area -->
+    <div class="viewport-container" id="viewportContainer">
+      <!-- Hidden raw video element -->
+      <video id="rawVideo" playsinline muted class="hidden"></video>
+
+      <!-- Placeholder when stream is off -->
+      <div id="placeholder" style="text-align: center; padding: 40px; color: #64748b;">
+        <div style="font-size: 48px; margin-bottom: 8px;">📷</div>
+        <div style="font-size: 16px; font-weight: 700; color: #f8fafc;">Camera Stream Offline</div>
+        <div style="font-size: 12px; margin-top: 4px;">Click "Start Live Stream" above to stream from Camera201.</div>
+      </div>
+
+      <!-- Split Stereo Viewport (L & R separated) -->
+      <div id="splitView" class="split-grid hidden">
+        <div class="canvas-card">
+          <canvas id="leftCanvas"></canvas>
+          <div class="lens-tag lens-tag-left">LENS 1 (LEFT EYE)</div>
+        </div>
+        <div class="canvas-card">
+          <canvas id="rightCanvas"></canvas>
+          <div class="lens-tag lens-tag-right">LENS 2 (RIGHT EYE)</div>
+        </div>
+      </div>
+
+      <!-- Single Raw Viewport -->
+      <div id="singleView" class="hidden" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 12px;">
+        <video id="singleVideo" playsinline autoplay muted style="border-radius: 10px; max-height: 520px;"></video>
+      </div>
+
+      <!-- Anaglyph Viewport -->
+      <div id="anaglyphView" class="hidden" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 12px;">
+        <canvas id="anaglyphCanvas" style="border-radius: 10px; max-height: 520px;"></canvas>
+      </div>
+
+      <!-- Live Telemetry HUD Bar -->
+      <div class="hud-bar" id="hudBar">
+        <div style="display: flex; gap: 16px; align-items: center;">
+          <div class="hud-stat"><span class="dot"></span> <span id="statusText">STANDBY</span></div>
+          <div class="hud-stat">Resolution: <strong id="hudResolution">0 × 0</strong></div>
+          <div class="hud-stat">FPS: <strong id="hudFps">0</strong></div>
+          <div class="hud-stat">Aspect: <strong id="hudAspect">--</strong></div>
+        </div>
+        <div>Hardware: <strong>Camera201 (USB UVC)</strong></div>
+      </div>
+    </div>
+
+    <!-- Sliders -->
+    <div class="sliders-row">
+      <div>
+        <div style="display: flex; justify-content: space-between;">
+          <span>Brightness</span>
+          <span id="valBrightness" style="color: #38bdf8;">100%</span>
+        </div>
+        <input type="range" id="sliderBrightness" min="50" max="200" value="100">
+      </div>
+      <div>
+        <div style="display: flex; justify-content: space-between;">
+          <span>Contrast</span>
+          <span id="valContrast" style="color: #38bdf8;">100%</span>
+        </div>
+        <input type="range" id="sliderContrast" min="50" max="200" value="100">
+      </div>
+      <div>
+        <div style="display: flex; justify-content: space-between;">
+          <span>Saturation</span>
+          <span id="valSaturation" style="color: #38bdf8;">100%</span>
+        </div>
+        <input type="range" id="sliderSaturation" min="0" max="200" value="100">
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; margin-top: 14px;">
+        <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
+          <input type="checkbox" id="chkGrayscale">
+          <span>Grayscale / IR Filter</span>
+        </label>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const deviceSelect = document.getElementById('deviceSelect');
+    const resSelect = document.getElementById('resSelect');
+    const btnToggleStream = document.getElementById('btnToggleStream');
+    const btnRefresh = document.getElementById('btnRefresh');
+    const btnGrid = document.getElementById('btnGrid');
+    const btnSnapshot = document.getElementById('btnSnapshot');
+    const btnRecord = document.getElementById('btnRecord');
+
+    const rawVideo = document.getElementById('rawVideo');
+    const singleVideo = document.getElementById('singleVideo');
+    const leftCanvas = document.getElementById('leftCanvas');
+    const rightCanvas = document.getElementById('rightCanvas');
+    const anaglyphCanvas = document.getElementById('anaglyphCanvas');
+
+    const placeholder = document.getElementById('placeholder');
+    const splitView = document.getElementById('splitView');
+    const singleView = document.getElementById('singleView');
+    const anaglyphView = document.getElementById('anaglyphView');
+
+    const hudResolution = document.getElementById('hudResolution');
+    const hudFps = document.getElementById('hudFps');
+    const hudAspect = document.getElementById('hudAspect');
+    const statusText = document.getElementById('statusText');
+
+    const sliderBrightness = document.getElementById('sliderBrightness');
+    const sliderContrast = document.getElementById('sliderContrast');
+    const sliderSaturation = document.getElementById('sliderSaturation');
+    const chkGrayscale = document.getElementById('chkGrayscale');
+
+    let currentStream = null;
+    let isStreaming = false;
+    let currentMode = 'SPLIT_STEREO';
+    let showGrid = true;
+    let animId = null;
+
+    let frameCount = 0;
+    let lastFpsTime = performance.now();
+
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let isRecording = false;
+
+    // View Mode Switcher
+    document.querySelectorAll('#viewModeGroup button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#viewModeGroup button').forEach(b => b.classList.remove('btn-active'));
+        btn.classList.add('btn-active');
+        currentMode = btn.dataset.mode;
+        updateViewModeLayout();
+      });
+    });
+
+    function updateViewModeLayout() {
+      if (!isStreaming) return;
+      splitView.classList.add('hidden');
+      singleView.classList.add('hidden');
+      anaglyphView.classList.add('hidden');
+
+      if (currentMode === 'SPLIT_STEREO') splitView.classList.remove('hidden');
+      else if (currentMode === 'SINGLE') singleView.classList.remove('hidden');
+      else if (currentMode === 'ANAGLYPH') anaglyphView.classList.remove('hidden');
+    }
+
+    // Grid toggle
+    btnGrid.addEventListener('click', () => {
+      showGrid = !showGrid;
+      btnGrid.textContent = showGrid ? '⌖ Grid: ON' : '⌖ Grid: OFF';
+    });
+
+    // Populate cameras
+    async function enumerateCameras() {
+      deviceSelect.innerHTML = '<option value="">Scanning devices...</option>';
+      try {
+        const temp = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        temp.getTracks().forEach(t => t.stop());
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter(d => d.kind === 'videoinput');
+
+        deviceSelect.innerHTML = '';
+        videoInputs.forEach((d, idx) => {
+          const opt = document.createElement('option');
+          opt.value = d.deviceId;
+          opt.textContent = d.label || `Camera ${idx + 1} (${d.deviceId.slice(0, 8)})`;
+          if (d.label.toLowerCase().includes('camera201') || d.label.toLowerCase().includes('dual')) {
+            opt.selected = true;
+          }
+          deviceSelect.appendChild(opt);
+        });
+      } catch (e) {
+        deviceSelect.innerHTML = `<option value="">Access Error: ${e.message}</option>`;
+      }
+    }
+
+    btnRefresh.addEventListener('click', enumerateCameras);
+
+    // Start / Stop Stream
+    async function startStream() {
+      stopStream();
+      const deviceId = deviceSelect.value;
+      const resVal = resSelect.value;
+
+      const constraints = {
+        video: {
+          deviceId: deviceId ? { exact: deviceId } : undefined,
+          frameRate: { ideal: 30 }
+        },
+        audio: false
+      };
+
+      if (resVal !== 'AUTO') {
+        const [w, h] = resVal.split('x').map(Number);
+        constraints.video.width = { ideal: w };
+        constraints.video.height = { ideal: h };
+      }
+
+      try {
+        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+        rawVideo.srcObject = currentStream;
+        singleVideo.srcObject = currentStream;
+        await rawVideo.play();
+        await singleVideo.play();
+
+        isStreaming = true;
+        placeholder.classList.add('hidden');
+        btnToggleStream.textContent = '⏹ Stop Feed';
+        btnToggleStream.className = 'btn btn-danger';
+        statusText.textContent = 'LIVE UVC STREAMING';
+        updateViewModeLayout();
+
+        lastFpsTime = performance.now();
+        frameCount = 0;
+        requestAnimationFrame(renderLoop);
+      } catch (err) {
+        alert('Camera error: ' + err.message);
+      }
+    }
+
+    function stopStream() {
+      if (currentStream) {
+        currentStream.getTracks().forEach(t => t.stop());
+        currentStream = null;
+      }
+      if (animId) {
+        cancelAnimationFrame(animId);
+        animId = null;
+      }
+      isStreaming = false;
+      placeholder.classList.remove('hidden');
+      splitView.classList.add('hidden');
+      singleView.classList.add('hidden');
+      anaglyphView.classList.add('hidden');
+      btnToggleStream.textContent = '▶ Start Live Stream';
+      btnToggleStream.className = 'btn btn-primary';
+      statusText.textContent = 'STANDBY';
+      hudFps.textContent = '0';
+      hudResolution.textContent = '0 × 0';
+    }
+
+    btnToggleStream.addEventListener('click', () => {
+      if (isStreaming) stopStream();
+      else startStream();
+    });
+
+    function drawReticle(ctx, w, h, label) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(6, 182, 212, 0.7)';
+      ctx.lineWidth = 1;
+
+      // Axes
+      ctx.beginPath();
+      ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h);
+      ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2);
+      ctx.stroke();
+
+      // Center ring
+      ctx.beginPath();
+      ctx.arc(w / 2, h / 2, 35, 0, 2 * Math.PI);
+      ctx.stroke();
+
+      // Parallax guide lines
+      ctx.strokeStyle = 'rgba(234, 179, 8, 0.35)';
+      for (let y = h / 4; y < h; y += h / 4) {
+        ctx.beginPath();
+        ctx.moveTo(0, y); ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function renderLoop(time) {
+      if (!isStreaming || rawVideo.readyState < 2) {
+        if (isStreaming) animId = requestAnimationFrame(renderLoop);
+        return;
+      }
+
+      const w = rawVideo.videoWidth;
+      const h = rawVideo.videoHeight;
+
+      if (w > 0 && h > 0) {
+        hudResolution.textContent = `${w} × ${h}`;
+        hudAspect.textContent = (w / h).toFixed(2) + ':1' + (w >= h * 2.1 ? ' (Dual-Lens UltraWide)' : '');
+
+        const halfW = Math.floor(w / 2);
+        const b = sliderBrightness.value;
+        const c = sliderContrast.value;
+        const s = sliderSaturation.value;
+        const gray = chkGrayscale.checked ? ' grayscale(100%)' : '';
+        const filterStr = `brightness(${b}%) contrast(${c}%) saturate(${s}%)${gray}`;
+
+        // Render Left Canvas
+        if (leftCanvas.width !== halfW || leftCanvas.height !== h) {
+          leftCanvas.width = halfW; leftCanvas.height = h;
+        }
+        const lCtx = leftCanvas.getContext('2d');
+        lCtx.filter = filterStr;
+        lCtx.drawImage(rawVideo, 0, 0, halfW, h, 0, 0, halfW, h);
+        if (showGrid) drawReticle(lCtx, halfW, h, 'Left Lens');
+
+        // Render Right Canvas
+        if (rightCanvas.width !== halfW || rightCanvas.height !== h) {
+          rightCanvas.width = halfW; rightCanvas.height = h;
+        }
+        const rCtx = rightCanvas.getContext('2d');
+        rCtx.filter = filterStr;
+        rCtx.drawImage(rawVideo, halfW, 0, halfW, h, 0, 0, halfW, h);
+        if (showGrid) drawReticle(rCtx, halfW, h, 'Right Lens');
+
+        // Render Anaglyph
+        if (currentMode === 'ANAGLYPH') {
+          if (anaglyphCanvas.width !== halfW || anaglyphCanvas.height !== h) {
+            anaglyphCanvas.width = halfW; anaglyphCanvas.height = h;
+          }
+          const aCtx = anaglyphCanvas.getContext('2d');
+          aCtx.drawImage(rawVideo, 0, 0, halfW, h, 0, 0, halfW, h);
+          const leftImg = aCtx.getImageData(0, 0, halfW, h);
+
+          const tmpC = document.createElement('canvas');
+          tmpC.width = halfW; tmpC.height = h;
+          const tmpCtx = tmpC.getContext('2d');
+          tmpCtx.drawImage(rawVideo, halfW, 0, halfW, h, 0, 0, halfW, h);
+          const rightImg = tmpCtx.getImageData(0, 0, halfW, h);
+
+          const out = aCtx.createImageData(halfW, h);
+          const len = halfW * h * 4;
+          for (let i = 0; i < len; i += 4) {
+            out.data[i] = leftImg.data[i];       // Red from Left
+            out.data[i + 1] = rightImg.data[i + 1]; // Green from Right
+            out.data[i + 2] = rightImg.data[i + 2]; // Blue from Right
+            out.data[i + 3] = 255;
+          }
+          aCtx.putImageData(out, 0, 0);
+        }
+      }
+
+      // FPS Calculation
+      frameCount++;
+      const elapsed = time - lastFpsTime;
+      if (elapsed >= 1000) {
+        hudFps.textContent = Math.round((frameCount * 1000) / elapsed);
+        frameCount = 0;
+        lastFpsTime = time;
+      }
+
+      animId = requestAnimationFrame(renderLoop);
+    }
+
+    // Sliders feedback
+    sliderBrightness.addEventListener('input', () => document.getElementById('valBrightness').textContent = sliderBrightness.value + '%');
+    sliderContrast.addEventListener('input', () => document.getElementById('valContrast').textContent = sliderContrast.value + '%');
+    sliderSaturation.addEventListener('input', () => document.getElementById('valSaturation').textContent = sliderSaturation.value + '%');
+
+    // Snapshot
+    btnSnapshot.addEventListener('click', () => {
+      if (!isStreaming) return;
+      const c = document.createElement('canvas');
+      c.width = rawVideo.videoWidth;
+      c.height = rawVideo.videoHeight;
+      c.getContext('2d').drawImage(rawVideo, 0, 0);
+      const a = document.createElement('a');
+      a.href = c.toDataURL('image/png');
+      a.download = `camera201-snapshot-${Date.now()}.png`;
+      a.click();
+    });
+
+    // Recording
+    btnRecord.addEventListener('click', () => {
+      if (!isStreaming) return;
+      if (isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        btnRecord.textContent = '🔴 Record';
+        btnRecord.classList.remove('btn-danger');
+        document.getElementById('recordingStatus').textContent = 'Ready for capture';
+      } else {
+        recordedChunks = [];
+        try {
+          mediaRecorder = new MediaRecorder(currentStream, { mimeType: 'video/webm' });
+          mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+          mediaRecorder.onstop = () => {
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `camera201-recording-${Date.now()}.webm`;
+            a.click();
+          };
+          mediaRecorder.start();
+          isRecording = true;
+          btnRecord.textContent = '⏹ Stop Rec';
+          btnRecord.classList.add('btn-danger');
+          document.getElementById('recordingStatus').textContent = '🔴 RECORDING ACTIVE...';
+        } catch (err) {
+          alert('Recording failed: ' + err.message);
+        }
+      }
+    });
+
+    // Init
+    enumerateCameras();
+  </script>
+</body>
+</html>

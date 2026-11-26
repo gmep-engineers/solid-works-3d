@@ -54,3 +54,4 @@ echo "=========================================="
 SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --platform managed --region "$REGION" --format="value(status.url)")
 echo -e "\nActive Cloud Run URL: $SERVICE_URL"
 echo "Domain: https://hephillu3d.com"
+
